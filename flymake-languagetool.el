@@ -320,8 +320,14 @@ This function correctly handles emoji which count as two characters."
                        (map-elt flymake-languagetool-category-map
                                 .rule.category.id)
                      :warning)
-                   (concat .message " [LanguageTool]")
-                   ;; add text property for suggested replacements
+                   (let ((sugs (seq-map (lambda (rep)
+                                         (car (map-values rep)))
+                                       .replacements)))
+                     (if sugs
+                         (format "%s (try: %s) [LanguageTool]"
+                                 .message
+                                 (string-join (seq-take sugs 3) ", "))
+                       (concat .message " [LanguageTool]")))
                    `((suggestions . (,@(seq-map (lambda (rep)
                                                   (car (map-values rep)))
                                                 .replacements)))
