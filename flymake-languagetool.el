@@ -356,7 +356,8 @@ STATUS provided from `url-retrieve'."
      ((and proc-current err)
       ;; Ignore errors about deleted processes since they are obsolete
       ;; calls deleted by `flymake-languagetool--check'
-      (unless (equal "deleted" (string-trim (nth 2 err)))
+      (unless (and (stringp (nth 2 err))
+                    (equal "deleted" (string-trim (nth 2 err))))
         (with-current-buffer source-buffer
           ;; for some reason the 2nd element in error list is a
           ;; symbol. This needs to be changed to string to reflect in
