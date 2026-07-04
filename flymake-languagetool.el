@@ -224,6 +224,12 @@ These rules will be enabled if `flymake-languagetool-check-spelling' is non-nil.
 (defvar-local flymake-languagetool--proc-buf nil
   "Current process we are currently using for grammar check.")
 
+(defvar-local flymake-languagetool--report-fn nil
+  "The `report-fn' of the most recent `flymake-languagetool--checker' run.
+Flymake hands the checker a fresh REPORT-FN for every run and treats a
+report from an older run as obsolete.  We record the latest one here so
+asynchronous callbacks can drop stale reports instead of crashing.")
+
 (defvar flymake-languagetool--local nil
   "Can we reach the local LanguageTool server API?")
 
@@ -328,7 +334,8 @@ This function correctly handles emoji which count as two characters."
                                  .message
                                  (string-join (seq-take sugs 3) ", "))
                        (concat .message " [LanguageTool]")))
-                   `((suggestions . (,@(seq-map (lambda (rep)
+                   `((message . ,(concat .message " [LanguageTool]"))
+                     (suggestions . (,@(seq-map (lambda (rep)
                                                   (car (map-values rep)))
                                                 .replacements)))
                      (rule-id . ,.rule.id)
@@ -349,11 +356,18 @@ This function correctly handles emoji which count as two characters."
 STATUS provided from `url-retrieve'."
   (let* ((err (plist-get status :error))
          (c-buf (current-buffer))
-         (proc-buf (buffer-local-value 'flymake-languagetool--proc-buf
-                                       source-buffer))
-         (proc-current (equal c-buf proc-buf)))
+         ;; REPORT-FN is unique to the Flymake run that spawned this
+         ;; request.  If the source buffer has since started a newer run
+         ;; the stored `flymake-languagetool--report-fn' no longer matches
+         ;; and calling REPORT-FN would signal an "Obsolete report" error.
+         (current (eq report-fn
+                      (buffer-local-value 'flymake-languagetool--report-fn
+                                          source-buffer))))
     (cond
-     ((and proc-current err)
+     ((not current)
+      (with-current-buffer source-buffer
+        (flymake-log :warning "Skipping an obsolete check")))
+     (err
       ;; Ignore errors about deleted processes since they are obsolete
       ;; calls deleted by `flymake-languagetool--check'
       (unless (and (stringp (nth 2 err))
@@ -365,7 +379,7 @@ STATUS provided from `url-retrieve'."
           (setf (nth 1 err) (symbol-name (nth 1 err)))
           (funcall report-fn :panic :explanation
                    (format "%s: %s" c-buf (error-message-string err))))))
-     ((and proc-current url-http-end-of-headers)
+     (url-http-end-of-headers
       (let ((output (save-restriction
                       (set-buffer-multibyte t)
                       (goto-char url-http-end-of-headers)
@@ -373,10 +387,7 @@ STATUS provided from `url-retrieve'."
         (with-current-buffer source-buffer
           (funcall report-fn
                    (flymake-languagetool--output-to-errors output source-buffer)
-                   :region (cons (point-min) (point-max))))))
-     ((not proc-current)
-      (with-current-buffer source-buffer
-        (flymake-log :warning "Skipping an obsolete check"))))
+                   :region (cons (point-min) (point-max)))))))
     (kill-buffer c-buf)))
 
 (defun flymake-languagetool--check (report-fn text)
@@ -465,7 +476,10 @@ Once started call `flymake-languagetool' checker with REPORT-FN."
        (when (string-match ".*Server started\n$" string)
          (with-current-buffer source
            (setq flymake-languagetool--local t)
-           (flymake-languagetool--checker report-fn))
+           ;; Only resume the run that requested the server; if the buffer
+           ;; has moved on to a newer check, REPORT-FN is already obsolete.
+           (when (eq report-fn flymake-languagetool--report-fn)
+             (flymake-languagetool--checker report-fn)))
          (set-process-filter proc nil)))
      :sentinel
      (lambda (proc _event)
@@ -476,6 +490,10 @@ Once started call `flymake-languagetool' checker with REPORT-FN."
 
 (defun flymake-languagetool--checker (report-fn &rest _args)
   "Diagnostic checker function with REPORT-FN."
+  ;; Remember the report function for this run so asynchronous callbacks
+  ;; can tell whether they are still current (see
+  ;; `flymake-languagetool--handle-finished').
+  (setq flymake-languagetool--report-fn report-fn)
   (let ((text (buffer-substring-no-properties
                (point-min) (point-max))))
     (cond
@@ -615,8 +633,11 @@ Use OL as diagnostic if non-nil."
                                (overlay-get ov 'flymake-diagnostic))
                               'type))
                (sugs (flymake-languagetool--suggestions))
-               (prompt (flymake-diagnostic-text
-                        (overlay-get ov 'flymake-diagnostic)))
+               (prompt (or (map-elt (flymake-diagnostic-data
+                                     (overlay-get ov 'flymake-diagnostic))
+                                    'message)
+                          (flymake-diagnostic-text
+                           (overlay-get ov 'flymake-diagnostic))))
                (id (map-elt (flymake-diagnostic-data
                              (overlay-get ov 'flymake-diagnostic))
                             'rule-id))
