@@ -7,7 +7,9 @@
   <img src="./.github/logo.svg" alt="ALT's Langauge Tool" />
 </div>
 
-# ALT's Langauge Tool
+
+
+<h1 align="center">ALT's Language Tool</h1>
 
 ALT is a maintained fork of [flymake-langaugetool](https://github.com/emacs-languagetool/flymake-languagetool).
 
@@ -24,94 +26,115 @@ The instruction to use this plugin.
 
 #### Local LanguageTool Server
 ```el
-(use-package flymake-languagetool
+(use-package alt
   :ensure t
-  :hook ((text-mode       . flymake-languagetool-load)
-         (latex-mode      . flymake-languagetool-load)
-         (org-mode        . flymake-languagetool-load)
-         (markdown-mode   . flymake-languagetool-load))
+  :hook ((text-mode       . alt-mode)
+         (latex-mode      . alt-mode)
+         (org-mode        . alt-mode)
+         (markdown-mode   . alt-mode))
   :init
   ;; Local Server Configuration
-  (setq flymake-languagetool-server-jar
-	"path/to/LanguageTool-X.X/languagetool-server.jar"))
+  (setq alt-languagetool-server-jar
+    "path/to/LanguageTool-X.X/languagetool-server.jar"))
 ```
 
 #### Free LanguageTool Account
 ```el
-(use-package flymake-languagetool
+(use-package alt
   :ensure t
-  :hook ((text-mode       . flymake-languagetool-load)
-         (latex-mode      . flymake-languagetool-load)
-         (org-mode        . flymake-languagetool-load)
-         (markdown-mode   . flymake-languagetool-load))
+  :hook ((text-mode       . alt-mode)
+         (latex-mode      . alt-mode)
+         (org-mode        . alt-mode)
+         (markdown-mode   . alt-mode))
   :init
   ;; LanguageTools API Remote Server Configuration
-  (setq flymake-languagetool-server-jar nil)
-  (setq flymake-languagetool-url "https://api.languagetool.org"))
+  (setq alt-languagetool-server-jar nil)
+  (setq alt-languagetool-url "https://api.languagetool.org"))
 ```
 
 #### Premium LanguageTool Account
 ```el
-(use-package flymake-languagetool
+(use-package alt
   :ensure t
-  :hook ((text-mode       . flymake-languagetool-load)
-         (latex-mode      . flymake-languagetool-load)
-         (org-mode        . flymake-languagetool-load)
-         (markdown-mode   . flymake-languagetool-load))
+  :hook ((text-mode       . alt-mode)
+         (latex-mode      . alt-mode)
+         (org-mode        . alt-mode)
+         (markdown-mode   . alt-mode))
   :init
   ;; If using Premium Version provide the following information
-  (setq flymake-languagetool-server-jar nil)
-  (setq flymake-languagetool-url "https://api.languagetoolplus.com")
-  (setq flymake-languagetool-api-username "myusername")
-  (setq flymake-languagetool-api-key "APIKEY"))
+  (setq alt-languagetool-server-jar nil)
+  (setq alt-languagetool-url "https://api.languagetoolplus.com")
+  (setq alt-languagetool-api-username "myusername")
+  (setq alt-languagetool-api-key "APIKEY"))
 ```
 
-3. :tada: Done! Now open a text file and hit `M-x flymake-mode`!
+3. :tada: Done! `alt-mode` turns on Flymake automatically, so just open a
+   text file. You can also toggle it manually with `M-x alt-mode`.
 
-Another option is to add `flymake-languagetool-maybe-load` to
-`find-file-hook`, this way `flymake-languagetool` will be enabled
-whenever `flymake-mode` is active and the current major-mode is
-included in `flymake-languagetool-active-modes`.
+### Enabling with other Flymake checkers
+
+`alt-mode` is a convenience minor mode: it registers the LanguageTool
+checker and turns on `flymake-mode` for you. When you disable it, it turns
+`flymake-mode` back off again — but only if `alt-mode` was what enabled it
+and no other Flymake backend is still using it. A `flymake-mode` you turned
+on yourself, or one shared with other Flymake backends, is left alone.
+
+(Note: [Flycheck](https://www.flycheck.org/) is a separate system from
+Flymake, so `alt-mode` never affects your Flycheck checkers either way.)
+
+If you manage `flymake-mode` yourself, or want to combine ALT with other
+Flymake backends in the same buffer, use `alt-load` instead — it only
+registers the checker and leaves `flymake-mode` to you:
 
 ```el
-(add-hook 'find-file-hook 'flymake-languagetool-maybe-load)
+(add-hook 'text-mode-hook #'alt-load)
+(add-hook 'text-mode-hook #'flymake-mode)
+```
+
+Another option is to add `alt-maybe-load` to
+`find-file-hook`, this way `alt` will be enabled
+whenever `flymake-mode` is active and the current major-mode is
+included in `alt-active-modes`.
+
+```el
+(add-hook 'find-file-hook 'alt-maybe-load)
 ```
 
 ## 🧪 Configuration
 
 ### Language
 The language used for flymake can be customized by using
-`flymake-languagetool-language` (Default `"en-US"`)
+`alt-language` (Default `"en-US"`)
 
 ### Active Modes
 
-If you are using `flymake-languagetool-maybe-load` you can customize
-which modes `flymake-languagetool` will be enabled for by adding a
-major-mode to `flymake-languagetool-active-modes`. The default value
+If you are using `alt-maybe-load` you can customize
+which modes `alt` will be enabled for by adding a
+major-mode to `alt-active-modes`. The default value
 is `'(text-mode latex-mode org-mode markdown-mode message-mode)`
 
 ### Spellchecking
 
 LanguageTool’s spellchecking is disabled by default. If
-`flymake-languagetool-check-spelling` is non-nil LanguageTool will check
+`alt-check-spelling` is non-nil LanguageTool will check
 for spelling mistakes.
 
 ### Disabling Rules & Categories
 
 Specific rules can be disabled using
-`flymake-languagetool-disabled-rules`. For example, LanguageTool's
+`alt-disabled-rules`. For example, LanguageTool's
 whitespace rule can be a bit verbose in `org-mode` and it can be
 disabled by adding its ID to this variable.
 
 ```el
-(push "WHITESPACE_RULE" flymake-languagetool--disabled-rules)
+(push "WHITESPACE_RULE" alt-disabled-rules)
 ```
 
 The full list of rules and their IDs can be found [here](https://community.languagetool.org/rule/list?lang=en).
 
 Similarly, you can disable categories using the
-`flymake-languagetool-disabled-categories` variable. The full list of
-categories can be found in `flymake-languagetool-map`
+`alt-disabled-categories` variable. The full list of
+categories can be found in `alt-category-map`
 
 You can also disable rules and categories interactively with the `Ignore`
 option. These rules will be ignored temporarily, for the current buffer
@@ -121,20 +144,20 @@ only.
 
 Suggestions from LanguageTool can be applied with:
 
-`flymake-languagetool-correct`: select error in current buffer with
+`alt-correct`: select error in current buffer with
     completing read
 
-`flymake-languagetool-correct-at-point`: correct error at point
+`alt-correct-at-point`: correct error at point
 
-`flymake-languagetool-correct-dwim`: if point is on a
-    `flymake-languagetool` error then correct; otherwise, select one
+`alt-correct-dwim`: if point is on a
+    `alt` error then correct; otherwise, select one
     from the current buffer.
 
 ### Categories
 
-By default, `flymake-languagetool` will now provide LanguageTool
+By default, `alt` will now provide LanguageTool
 category information for each identified error. If you wish to disable
-this behavior, you can set `flymake-languagetool-use-categories = nil`.
+this behavior, you can set `alt-use-categories = nil`.
 
 <img align="middle" src="./etc/diagnostics.png" with="500" height="700">
 
@@ -142,8 +165,6 @@ this behavior, you can set `flymake-languagetool-use-categories = nil`.
 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![Elisp styleguide](https://img.shields.io/badge/elisp-style%20guide-purple?logo=gnuemacs&logoColor=white)](https://github.com/bbatsov/emacs-lisp-style-guide)
-[![Donate on paypal](https://img.shields.io/badge/paypal-donate-1?logo=paypal&color=blue)](https://www.paypal.me/jcs090218)
-[![Become a patron](https://img.shields.io/badge/patreon-become%20a%20patron-orange.svg?logo=patreon)](https://www.patreon.com/jcs090218)
 
 If you would like to contribute to this project, you may either
 clone and make pull requests to this repository. Or you can

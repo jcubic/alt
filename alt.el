@@ -1,10 +1,10 @@
-;;; flymake-languagetool.el --- Flymake support for LanguageTool  -*- lexical-binding: t; -*-
+;;; alt.el --- Flymake support for LanguageTool  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2026  Shen, Jen-Chieh
 ;; Created date 2021-04-02 23:22:37
 
 ;; Authors: Shen, Jen-Chieh <jcs090218@gmail.com>, Trey Peacock <git@treypeacock.com>
-;; URL: https://github.com/emacs-languagetool/flymake-languagetool
+;; URL: https://github.com/jcubic/alt
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "27.1") (compat "29.1.4.4"))
 ;; Keywords: convenience grammar check
@@ -40,7 +40,7 @@
 
 ;; Either use the built-in JSON support or import the `json' library, defining a
 ;; compatibility function so we can use the best supported JSON parser.
-(defalias 'flymake-languagetool--parse-json
+(defalias 'alt--parse-json
   (if (and (fboundp 'json-parse-string)
            (fboundp 'json-available-p)
            (json-available-p))
@@ -57,20 +57,20 @@
 ;; Dynamically bound.
 (defvar url-http-end-of-headers)
 
-(defgroup flymake-languagetool nil
+(defgroup alt nil
   "Flymake support for LanguageTool."
-  :prefix "flymake-languagetool-"
+  :prefix "alt-"
   :group 'flymake
   :link '(url-link :tag "Github"
-                   "https://github.com/emacs-languagetool/flymake-languagetool"))
+                   "https://github.com/jcubic/alt"))
 
-(defcustom flymake-languagetool-active-modes
+(defcustom alt-active-modes
   '(text-mode latex-mode org-mode markdown-mode message-mode)
   "List of major mode that work with LanguageTool."
   :type '(repeat symbol)
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-ignore-faces-alist
+(defcustom alt-ignore-faces-alist
   '((org-mode . (org-code org-verbatim
                           org-block font-lock-comment-face
                           org-block-begin-line org-block-end-line
@@ -97,25 +97,25 @@
 It is an alist of (major-mode . faces-to-ignore)"
   :type '(alist :key-type symbol
                 :value-type (repeat symbol))
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-url nil
+(defcustom alt-languagetool-url nil
   "The URL for the LanguageTool API we should connect to."
   :type '(choice (const :tag "Auto" nil)
                  (string :tag "URL"))
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-api-username nil
+(defcustom alt-languagetool-api-username nil
   "The username for accessing the Premium LanguageTool API."
   :type 'string
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-api-key nil
+(defcustom alt-languagetool-api-key nil
   "The API Key for accessing the Premium LanguageTool API."
   :type 'string
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-server-jar nil
+(defcustom alt-languagetool-server-jar nil
   "The path of languagetool-server.jar.
 
 The server will be automatically started if specified.  Set to
@@ -125,49 +125,49 @@ or plan to start a local server some other way."
                  (file :tag "Filename" :must-match t))
   :link '(url-link :tag "LanguageTool embedded HTTP Server"
                    "https://dev.languagetool.org/http-server.html")
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-server-port "8081"
+(defcustom alt-languagetool-server-port "8081"
   "Port used to make api url requests on local server."
   :type 'string
   :link '(url-link :tag "LanguageTool embedded HTTP Server"
                    "https://dev.languagetool.org/http-server.html")
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-server-command ()
+(defcustom alt-languagetool-server-command ()
   "Custom command to start LanguageTool server.
 If non-nil, this list of strings replaces the standard java cli command."
   :type '(repeat string)
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-server-args ()
+(defcustom alt-languagetool-server-args ()
   "Extra arguments to pass when starting the LanguageTool server."
   :type '(repeat string)
   :link '(url-link :tag "LanguageTool embedded HTTP Server"
                    "https://dev.languagetool.org/http-server.html")
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-language "en-US"
+(defcustom alt-language "en-US"
   "The language code of the text to check."
   :type '(string :tag "Language")
   :safe #'stringp
-  :group 'flymake-languagetool)
-(make-variable-buffer-local 'flymake-languagetool-language)
+  :group 'alt)
+(make-variable-buffer-local 'alt-language)
 
-(defcustom flymake-languagetool-check-spelling nil
+(defcustom alt-check-spelling nil
   "If non-nil, LanguageTool will check spelling."
   :type 'boolean
   :safe #'booleanp
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-check-params ()
+(defcustom alt-check-params ()
   "Extra parameters to pass with LanguageTool check requests."
   :type '(alist :key-type string :value-type string)
   :link '(url-link :tag "LanguageTool API"
                    "https://languagetool.org/http-api/swagger-ui/#!/default/post_check")
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-spelling-rules
+(defcustom alt-spelling-rules
   '("HUNSPELL_RULE"
     "HUNSPELL_RULE_AR"
     "MORFOLOGIK_RULE_AST"
@@ -201,39 +201,39 @@ If non-nil, this list of strings replaces the standard java cli command."
     "MORFOLOGIK_RULE_UK_UA"
     "SYMSPELL_RULE")
   "LanguageTool rules for checking of spelling.
-These rules will be enabled if `flymake-languagetool-check-spelling' is non-nil."
+These rules will be enabled if `alt-check-spelling' is non-nil."
   :type '(repeat string)
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-disabled-rules '()
+(defcustom alt-disabled-rules '()
   "LanguageTool rules to be disabled by default."
   :type '(repeat string)
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-disabled-categories '()
+(defcustom alt-disabled-categories '()
   "LanguageTool categories to be disabled by default."
   :type '(repeat string)
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defcustom flymake-languagetool-use-categories t
+(defcustom alt-use-categories t
   "Report errors with LanguageTool Category."
   :type 'boolean
   :safe #'booleanp
-  :group 'flymake-languagetool)
+  :group 'alt)
 
-(defvar-local flymake-languagetool--proc-buf nil
+(defvar-local alt--proc-buf nil
   "Current process we are currently using for grammar check.")
 
-(defvar-local flymake-languagetool--report-fn nil
-  "The `report-fn' of the most recent `flymake-languagetool--checker' run.
+(defvar-local alt--report-fn nil
+  "The `report-fn' of the most recent `alt--checker' run.
 Flymake hands the checker a fresh REPORT-FN for every run and treats a
 report from an older run as obsolete.  We record the latest one here so
 asynchronous callbacks can drop stale reports instead of crashing.")
 
-(defvar flymake-languagetool--local nil
+(defvar alt--local nil
   "Can we reach the local LanguageTool server API?")
 
-(defconst flymake-languagetool-category-map
+(defconst alt-category-map
   '(("CASING"            . :casing)
     ("COLLOQUIALISMS"    . :colloquialisms)
     ("COMPOUNDING"       . :compounding)
@@ -260,11 +260,11 @@ See https://languagetool.org/development/api/org/languagetool/rules/Categories.h
 ;;
 ;;; Util
 
-(defun flymake-languagetool--category-setup ()
+(defun alt--category-setup ()
   "Setup LanguageTool categories as Flymake types."
-  (cl-loop for (n . key) in flymake-languagetool-category-map
+  (cl-loop for (n . key) in alt-category-map
            for name = (downcase (string-replace "_" "-" n))
-           for cat = (intern (format "flymake-languagetool-%s" name))
+           for cat = (intern (format "alt-%s" name))
            do
            (put key 'flymake-category cat)
            (put cat 'face 'flymake-warning)
@@ -275,11 +275,11 @@ See https://languagetool.org/development/api/org/languagetool/rules/Categories.h
            (put cat 'eol-face 'flymake-warning-echo-at-eol)
            (put cat 'flymake-type-name name)))
 
-(when flymake-languagetool-use-categories
-  (flymake-languagetool--category-setup))
+(when alt-use-categories
+  (alt--category-setup))
 
 ;; Ignore some faces
-(defun flymake-languagetool--ignore-at-pos-p (pos src-buf
+(defun alt--ignore-at-pos-p (pos src-buf
                                                   faces-to-ignore)
   "Return non-nil if faces at POS in SRC-BUF intersect FACES-TO-IGNORE."
   (let ((x (get-text-property pos 'face src-buf)))
@@ -288,14 +288,14 @@ See https://languagetool.org/development/api/org/languagetool/rules/Categories.h
      when (memq face faces-to-ignore)
      return t)))
 
-(defun flymake-languagetool--ignored-faces ()
+(defun alt--ignored-faces ()
   "Return the faces that should be ignored in the current buffer."
   (cl-loop
-   for (mode . faces) in flymake-languagetool-ignore-faces-alist
+   for (mode . faces) in alt-ignore-faces-alist
    when (derived-mode-p mode)
    append (ensure-list faces)))
 
-(defun flymake-languagetool--pos-to-point (buf offset pos)
+(defun alt--pos-to-point (buf offset pos)
   "Search forward in BUF for the specified text position POS from OFFSET.
 This function correctly handles emoji which count as two characters."
   (let (case-fold-search)
@@ -309,21 +309,21 @@ This function correctly handles emoji which count as two characters."
           (setq pos (1- pos)))
         pos))))
 
-(defun flymake-languagetool--check-all (errors source-buffer)
+(defun alt--check-all (errors source-buffer)
   "Check grammar ERRORS for SOURCE-BUFFER document."
   (let ((faces (with-current-buffer source-buffer
-                 (flymake-languagetool--ignored-faces)))
+                 (alt--ignored-faces)))
         check-list)
     (dolist (error errors)
       (let-alist error
-        (let* ((beg (flymake-languagetool--pos-to-point source-buffer (point-min) .offset))
-               (end (flymake-languagetool--pos-to-point source-buffer beg .length)))
-          (unless (and faces (flymake-languagetool--ignore-at-pos-p beg source-buffer faces))
+        (let* ((beg (alt--pos-to-point source-buffer (point-min) .offset))
+               (end (alt--pos-to-point source-buffer beg .length)))
+          (unless (and faces (alt--ignore-at-pos-p beg source-buffer faces))
             (push (flymake-make-diagnostic
                    source-buffer
                    beg end
-                   (if flymake-languagetool-use-categories
-                       (map-elt flymake-languagetool-category-map
+                   (if alt-use-categories
+                       (map-elt alt-category-map
                                 .rule.category.id)
                      :warning)
                    (let ((sugs (seq-map (lambda (rep)
@@ -345,23 +345,23 @@ This function correctly handles emoji which count as two characters."
                   check-list)))))
     check-list))
 
-(defun flymake-languagetool--output-to-errors (output source-buffer)
+(defun alt--output-to-errors (output source-buffer)
   "Parse the JSON data from OUTPUT of LanguageTool analysis of SOURCE-BUFFER."
-  (let* ((full-results (flymake-languagetool--parse-json output))
+  (let* ((full-results (alt--parse-json output))
          (errors (cdr (assoc 'matches full-results))))
-    (flymake-languagetool--check-all errors source-buffer)))
+    (alt--check-all errors source-buffer)))
 
-(defun flymake-languagetool--handle-finished (status source-buffer report-fn)
+(defun alt--handle-finished (status source-buffer report-fn)
   "Callback function for LanguageTool process for SOURCE-BUFFER.
 STATUS provided from `url-retrieve'."
   (let* ((err (plist-get status :error))
          (c-buf (current-buffer))
          ;; REPORT-FN is unique to the Flymake run that spawned this
          ;; request.  If the source buffer has since started a newer run
-         ;; the stored `flymake-languagetool--report-fn' no longer matches
+         ;; the stored `alt--report-fn' no longer matches
          ;; and calling REPORT-FN would signal an "Obsolete report" error.
          (current (eq report-fn
-                      (buffer-local-value 'flymake-languagetool--report-fn
+                      (buffer-local-value 'alt--report-fn
                                           source-buffer))))
     (cond
      ((not current)
@@ -369,7 +369,7 @@ STATUS provided from `url-retrieve'."
         (flymake-log :warning "Skipping an obsolete check")))
      (err
       ;; Ignore errors about deleted processes since they are obsolete
-      ;; calls deleted by `flymake-languagetool--check'
+      ;; calls deleted by `alt--check'
       (unless (and (stringp (nth 2 err))
                     (equal "deleted" (string-trim (nth 2 err))))
         (with-current-buffer source-buffer
@@ -386,19 +386,19 @@ STATUS provided from `url-retrieve'."
                       (buffer-substring (point) (point-max)))))
         (with-current-buffer source-buffer
           (funcall report-fn
-                   (flymake-languagetool--output-to-errors output source-buffer)
+                   (alt--output-to-errors output source-buffer)
                    :region (cons (point-min) (point-max)))))))
     (kill-buffer c-buf)))
 
-(defun flymake-languagetool--check (report-fn text)
+(defun alt--check (report-fn text)
   "Run LanguageTool on TEXT from current buffer's contento.
 The callback function will reply with REPORT-FN."
-  (when-let* ((buf flymake-languagetool--proc-buf))
+  (when-let* ((buf alt--proc-buf))
     ;; need to check if buffer has ongoing process or else we may
     ;; potentially delete the wrong one.
     (when-let* ((process (get-buffer-process buf)))
       (delete-process process))
-    (setf flymake-languagetool--proc-buf nil))
+    (setf alt--proc-buf nil))
   ;; Correctly %-encode query parameters.
   ;; See https://github.com/emacs-languagetool/flymake-languagetool/pull/34
   ;; and https://debbugs.gnu.org/cgi/bugreport.cgi?bug=78984
@@ -411,45 +411,45 @@ The callback function will reply with REPORT-FN."
           '(("Content-Type" . "application/x-www-form-urlencoded")))
          (source-buffer (current-buffer))
          (disabled-cats
-          (string-join flymake-languagetool-disabled-categories ","))
+          (string-join alt-disabled-categories ","))
          (disabled-rules
-          (string-join (append flymake-languagetool-disabled-rules
-                               (unless flymake-languagetool-check-spelling
-                                 flymake-languagetool-spelling-rules))
+          (string-join (append alt-disabled-rules
+                               (unless alt-check-spelling
+                                 alt-spelling-rules))
                        ","))
          (params (list (list "text" text)
-                       (list "language" flymake-languagetool-language)
+                       (list "language" alt-language)
                        (unless (string-empty-p disabled-rules)
                          (list "disabledRules" disabled-rules))
                        (unless (string-empty-p disabled-cats)
                          (list "disabledCategories" disabled-cats))
-                       (when flymake-languagetool-api-username
-                         (list "username" flymake-languagetool-api-username))
-                       (when flymake-languagetool-api-key
-                         (list "apiKey" flymake-languagetool-api-key))))
+                       (when alt-languagetool-api-username
+                         (list "username" alt-languagetool-api-username))
+                       (when alt-languagetool-api-key
+                         (list "apiKey" alt-languagetool-api-key))))
          (url-request-data (url-build-query-string params nil t)))
-    (if (flymake-languagetool--reachable-p)
-        (setq flymake-languagetool--proc-buf
+    (if (alt--reachable-p)
+        (setq alt--proc-buf
               (url-retrieve
-               (concat (or flymake-languagetool-url
+               (concat (or alt-languagetool-url
                            (format "http://localhost:%s"
-                                   flymake-languagetool-server-port))
+                                   alt-languagetool-server-port))
                        "/v2/check")
-               #'flymake-languagetool--handle-finished
+               #'alt--handle-finished
                (list source-buffer report-fn) t))
       ;; can't reach LanguageTool API, try again. TODO:
       (funcall report-fn :panic :explanation
                (format "Cannot reach LanguageTool URL: %s"
-                       flymake-languagetool-url)))))
+                       alt-languagetool-url)))))
 
-(defun flymake-languagetool--reachable-p ()
+(defun alt--reachable-p ()
   "TODO: Document this."
-  (let ((res (or flymake-languagetool--local
+  (let ((res (or alt--local
                  (condition-case nil
                      (url-retrieve-synchronously
-                      (concat (or flymake-languagetool-url
+                      (concat (or alt-languagetool-url
                                   (format "http://localhost:%s"
-                                          flymake-languagetool-server-port))
+                                          alt-languagetool-server-port))
                               "/v2/languages")
                       t)
                    (file-error nil)))))
@@ -458,63 +458,63 @@ The callback function will reply with REPORT-FN."
       (setq res t))
     res))
 
-(defun flymake-languagetool--start-server (report-fn)
+(defun alt--start-server (report-fn)
   "Start the LanguageTool server if we didn’t already.
-Once started call `flymake-languagetool' checker with REPORT-FN."
+Once started call `alt' checker with REPORT-FN."
   (let* ((source (current-buffer))
-         (cmd (or flymake-languagetool-server-command
-                  (list "java" "-cp" flymake-languagetool-server-jar
+         (cmd (or alt-languagetool-server-command
+                  (list "java" "-cp" alt-languagetool-server-jar
                         "org.languagetool.server.HTTPServer"
-                        "--port" flymake-languagetool-server-port))))
+                        "--port" alt-languagetool-server-port))))
     (make-process
      :name "languagetool-server" :noquery t :connection-type 'pipe
      :buffer " *LanguageTool server*"
-     :command (append cmd flymake-languagetool-server-args)
+     :command (append cmd alt-languagetool-server-args)
      :filter
      (lambda (proc string)
        (funcall #'internal-default-process-filter proc string)
        (when (string-match ".*Server started\n$" string)
          (with-current-buffer source
-           (setq flymake-languagetool--local t)
+           (setq alt--local t)
            ;; Only resume the run that requested the server; if the buffer
            ;; has moved on to a newer check, REPORT-FN is already obsolete.
-           (when (eq report-fn flymake-languagetool--report-fn)
-             (flymake-languagetool--checker report-fn)))
+           (when (eq report-fn alt--report-fn)
+             (alt--checker report-fn)))
          (set-process-filter proc nil)))
      :sentinel
      (lambda (proc _event)
        (when (memq (process-status proc) '(exit signal))
-         (setq flymake-languagetool--local nil)
+         (setq alt--local nil)
          (delete-process proc)
          (kill-buffer (process-buffer proc)))))))
 
-(defun flymake-languagetool--checker (report-fn &rest _args)
+(defun alt--checker (report-fn &rest _args)
   "Diagnostic checker function with REPORT-FN."
   ;; Remember the report function for this run so asynchronous callbacks
   ;; can tell whether they are still current (see
-  ;; `flymake-languagetool--handle-finished').
-  (setq flymake-languagetool--report-fn report-fn)
+  ;; `alt--handle-finished').
+  (setq alt--report-fn report-fn)
   (let ((text (buffer-substring-no-properties
                (point-min) (point-max))))
     (cond
-     ((flymake-languagetool--reachable-p)
-      (flymake-languagetool--check report-fn text))
-     ((or flymake-languagetool-server-command flymake-languagetool-server-jar)
-      (flymake-languagetool--start-server report-fn))
+     ((alt--reachable-p)
+      (alt--check report-fn text))
+     ((or alt-languagetool-server-command alt-languagetool-server-jar)
+      (alt--start-server report-fn))
      (t (funcall report-fn :panic :explanation
                  (format "Cannot reach LanguageTool URL: %s"
-                         flymake-languagetool-url))))))
+                         alt-languagetool-url))))))
 
-(defun flymake-languagetool--overlay-p (overlay)
-  "Return t if OVERLAY is a `flymake-languagetool' diagnostic overlay."
+(defun alt--overlay-p (overlay)
+  "Return t if OVERLAY is a `alt' diagnostic overlay."
   (when-let* ((diag (overlay-get overlay 'flymake-diagnostic))
               (backend (flymake-diagnostic-backend diag)))
-    (eq backend 'flymake-languagetool--checker)))
+    (eq backend 'alt--checker)))
 
-(defun flymake-languagetool--ovs (&optional format)
-  "List of all `flymake-languagetool' diagnostic overlays.
+(defun alt--ovs (&optional format)
+  "List of all `alt' diagnostic overlays.
 Optionally provide pretty FORMAT for each overlay."
-  (let* ((lt-ovs (seq-filter #'flymake-languagetool--overlay-p
+  (let* ((lt-ovs (seq-filter #'alt--overlay-p
                              (overlays-in (point-min) (point-max))))
          (ovs (seq-sort-by #'overlay-start #'< lt-ovs)))
     (if format
@@ -527,52 +527,52 @@ Optionally provide pretty FORMAT for each overlay."
          ovs)
       ovs)))
 
-(defvar-local flymake-languagetool-current-cand nil
+(defvar-local alt-current-cand nil
   "Current overlay candidate.")
 
-(defun flymake-languagetool--ov-at-point ()
-  "Return `flymake-languagetool' overlay at point."
-  (setq flymake-languagetool-current-cand
-        (car (seq-filter #'flymake-languagetool--overlay-p
+(defun alt--ov-at-point ()
+  "Return `alt' overlay at point."
+  (setq alt-current-cand
+        (car (seq-filter #'alt--overlay-p
                          (overlays-at (point))))))
 
-(defun flymake-languagetool--suggestions ()
+(defun alt--suggestions ()
   "Show corrections suggested from LanguageTool."
-  (overlay-put flymake-languagetool-current-cand 'face 'isearch)
+  (overlay-put alt-current-cand 'face 'isearch)
   (let ((sugs (map-elt (flymake-diagnostic-data
-                        (overlay-get flymake-languagetool-current-cand
+                        (overlay-get alt-current-cand
                                      'flymake-diagnostic))
                        'suggestions)))
     (seq-remove #'null `(,@sugs "Ignore Rule" "Ignore Category"))))
 
-(defun flymake-languagetool--clean-overlay ()
+(defun alt--clean-overlay ()
   "Remove highlighting of current candidate."
   (ignore-errors
-    (overlay-put flymake-languagetool-current-cand 'face 'flymake-warning))
-  (setq flymake-languagetool-current-cand nil))
+    (overlay-put alt-current-cand 'face 'flymake-warning))
+  (setq alt-current-cand nil))
 
-(defun flymake-languagetool--check-buffer ()
+(defun alt--check-buffer ()
   "TODO: Document this."
   (when (bound-and-true-p flymake-mode)
     (flymake-start)))
 
-(defun flymake-languagetool--ignore (ov id type)
+(defun alt--ignore (ov id type)
   "Ignore LanguageTool ID at OV.
 Depending on TYPE, either ignore Rule ID or Category ID."
   (let ((desc (map-elt (flymake-diagnostic-data
                         (overlay-get ov 'flymake-diagnostic))
                        'rule-desc)))
     (when (eq type 'Rule)
-      (make-local-variable 'flymake-languagetool-disabled-rules)
-      (add-to-list 'flymake-languagetool-disabled-rules id))
+      (make-local-variable 'alt-disabled-rules)
+      (add-to-list 'alt-disabled-rules id))
     (when (eq type 'Category)
-      (make-local-variable 'flymake-languagetool-disabled-categories)
-      (add-to-list 'flymake-languagetool-disabled-categories id))
-    (flymake-languagetool--check-buffer)
+      (make-local-variable 'alt-disabled-categories)
+      (add-to-list 'alt-disabled-categories id))
+    (alt--check-buffer)
     (message "%s %s: (%s) has been disabled" type id desc)
-    (flymake-languagetool--clean-overlay)))
+    (alt--clean-overlay)))
 
-(defun flymake-languagetool--correct (ov choice)
+(defun alt--correct (ov choice)
   "Replace text in error at OV with CHOICE."
   (let ((start (overlay-start ov))
         (end (overlay-end ov)))
@@ -584,7 +584,7 @@ Depending on TYPE, either ignore Rule ID or Category ID."
 
 ;; Lifted from jinx.el but will ensure users have a somewhat consistent
 ;; experience
-(defun flymake-languagetool--correct-setup ()
+(defun alt--correct-setup ()
   "Ensure that the minibuffer is setup for corrections."
   (let ((message-log-max nil)
         (inhibit-message t))
@@ -597,12 +597,12 @@ Depending on TYPE, either ignore Rule ID or Category ID."
 ;;; Corrections
 
 ;;;###autoload
-(defun flymake-languagetool-next (&optional n)
+(defun alt-next (&optional n)
   "Go to Nth next flymake languagetool error."
   (interactive (list (or current-prefix-arg 1)))
   (let* ((ovs (if (> n 0)
-                  (flymake-languagetool--ovs)
-                (nreverse (flymake-languagetool--ovs))))
+                  (alt--ovs)
+                (nreverse (alt--ovs))))
          (tail (seq-drop-while (lambda (ov) (if (> n 0)
                                                 (<= (overlay-start ov) (point))
                                               (>= (overlay-start ov) (point))))
@@ -614,25 +614,25 @@ Depending on TYPE, either ignore Rule ID or Category ID."
     (goto-char (overlay-start target))))
 
 ;;;###autoload
-(defun flymake-languagetool-previous (&optional n)
+(defun alt-previous (&optional n)
   "Go to Nth previous flymake languagetool error."
   (interactive (list (or current-prefix-arg 1)))
-  (flymake-languagetool-next (- n)))
+  (alt-next (- n)))
 
 ;;;###autoload
-(defun flymake-languagetool-correct-at-point (&optional ol)
-  "Correct `flymake-languagetool' diagnostic at point.
+(defun alt-correct-at-point (&optional ol)
+  "Correct `alt' diagnostic at point.
 Use OL as diagnostic if non-nil."
   (interactive)
-  (if-let* ((flymake-languagetool-current-cand
-             (or ol (flymake-languagetool--ov-at-point))))
+  (if-let* ((alt-current-cand
+             (or ol (alt--ov-at-point))))
       (condition-case nil
           (when-let*
-              ((ov flymake-languagetool-current-cand)
+              ((ov alt-current-cand)
                (type (map-elt (flymake-diagnostic-data
                                (overlay-get ov 'flymake-diagnostic))
                               'type))
-               (sugs (flymake-languagetool--suggestions))
+               (sugs (alt--suggestions))
                (prompt (or (map-elt (flymake-diagnostic-data
                                      (overlay-get ov 'flymake-diagnostic))
                                     'message)
@@ -642,60 +642,99 @@ Use OL as diagnostic if non-nil."
                              (overlay-get ov 'flymake-diagnostic))
                             'rule-id))
                (choice (minibuffer-with-setup-hook
-                           #'flymake-languagetool--correct-setup
+                           #'alt--correct-setup
                          (completing-read
                           (format "Correction (%s): " prompt) sugs nil t nil nil
                           (car sugs)))))
             (pcase choice
-              ("Ignore Rule" (flymake-languagetool--ignore ov id 'Rule))
+              ("Ignore Rule" (alt--ignore ov id 'Rule))
               ("Ignore Category"
-               (flymake-languagetool--ignore ov id 'Category))
-              (_ (flymake-languagetool--correct ov choice))))
-        (t (flymake-languagetool--clean-overlay)))
+               (alt--ignore ov id 'Category))
+              (_ (alt--correct ov choice))))
+        (t (alt--clean-overlay)))
     (user-error "No correction at point")))
 
 ;;;###autoload
-(defun flymake-languagetool-correct ()
+(defun alt-correct ()
   "Use `completing-read' to select and correct diagnostic."
   (interactive)
-  (let* ((cands (flymake-languagetool--ovs 'format))
+  (let* ((cands (alt--ovs 'format))
          (cand (if cands
                    (minibuffer-with-setup-hook
-                       #'flymake-languagetool--correct-setup
+                       #'alt--correct-setup
                      (completing-read "Error: " cands nil t))
                  (user-error "No candidates")))
          (ov (map-elt cands cand)))
     (save-excursion
       (goto-char (overlay-start ov))
       (condition-case nil
-          (funcall #'flymake-languagetool-correct-at-point ov)
-        (quit (flymake-languagetool--clean-overlay))
-        (t (flymake-languagetool--clean-overlay))))))
+          (funcall #'alt-correct-at-point ov)
+        (quit (alt--clean-overlay))
+        (t (alt--clean-overlay))))))
 
 ;;;###autoload
-(defun flymake-languagetool-correct-dwim ()
-  "DWIM function for correcting `flymake-languagetool' diagnostics."
+(defun alt-correct-dwim ()
+  "DWIM function for correcting `alt' diagnostics."
   (interactive)
-  (if-let* ((ov (flymake-languagetool--ov-at-point)))
-      (funcall #'flymake-languagetool-correct-at-point ov)
-    (funcall-interactively #'flymake-languagetool-correct)))
+  (if-let* ((ov (alt--ov-at-point)))
+      (funcall #'alt-correct-at-point ov)
+    (funcall-interactively #'alt-correct)))
 
 ;;
 ;;; Entry
 
+(defvar-local alt--flymake-managed nil
+  "Non-nil when `alt-mode' turned on `flymake-mode' in this buffer.
+Used to decide whether disabling `alt-mode' should also turn
+`flymake-mode' back off.")
+
+(defun alt--other-backends-p ()
+  "Return non-nil if a Flymake backend other than alt is active here.
+Considers the buffer-local diagnostic functions and, when the local
+hook opts into them (via the t element), the global ones too."
+  (let* ((local flymake-diagnostic-functions)
+         (fns (append (remq t local)
+                      (when (memq t local)
+                        (default-value 'flymake-diagnostic-functions)))))
+    (seq-some (lambda (fn) (not (eq fn #'alt--checker))) fns)))
+
 ;;;###autoload
-(defun flymake-languagetool-load ()
-  "Convenience function to setup flymake-languagetool.
+(define-minor-mode alt-mode
+  "Toggle LanguageTool grammar checking with Flymake in this buffer.
+Enabling registers the LanguageTool checker and turns on `flymake-mode'
+if it is not already active.  Disabling unregisters the checker and, when
+`alt-mode' was what enabled `flymake-mode' and no other Flymake backend
+remains, also turns `flymake-mode' back off.  A `flymake-mode' that was
+already on, or one shared with other backends, is left untouched."
+  :lighter " ALT"
+  (cond
+   (alt-mode
+    (add-hook 'flymake-diagnostic-functions #'alt--checker nil t)
+    (unless (bound-and-true-p flymake-mode)
+      (setq alt--flymake-managed t)
+      (flymake-mode 1)))
+   (t
+    (remove-hook 'flymake-diagnostic-functions #'alt--checker t)
+    (when (and alt--flymake-managed
+               (bound-and-true-p flymake-mode)
+               (not (alt--other-backends-p)))
+      (flymake-mode -1))
+    (setq alt--flymake-managed nil))))
+
+;;;###autoload
+(defun alt-load ()
+  "Convenience function to setup alt.
 This adds the language-tool checker to the list of flymake diagnostic
-functions."
-  (add-hook 'flymake-diagnostic-functions #'flymake-languagetool--checker nil t))
+functions.  Use this when you manage `flymake-mode' yourself or combine
+alt with other Flymake backends; otherwise `alt-mode' is simpler."
+  (add-hook 'flymake-diagnostic-functions #'alt--checker nil t))
 
 ;;;###autoload
-(defun flymake-languagetool-maybe-load ()
-  "Load backend if major-mode in `flymake-languagetool-active-modes'."
+(defun alt-maybe-load ()
+  "Load backend if major-mode in `alt-active-modes'."
   (interactive)
-  (when (memq major-mode flymake-languagetool-active-modes)
-    (flymake-languagetool-load)))
+  (when (memq major-mode alt-active-modes)
+    (alt-load)))
 
-(provide 'flymake-languagetool)
-;;; flymake-languagetool.el ends here
+(provide 'alt)
+;;; alt.el ends here

@@ -1,13 +1,13 @@
 ;; -*- mode: eask; lexical-binding: t -*-
 
-(package "flymake-languagetool"
+(package "alt"
          "0.2.0"
          "Flymake support for LanguageTool")
 
-(website-url "https://github.com/emacs-languagetool/flymake-languagetool")
+(website-url "https://github.com/jcubic/alt")
 (keywords "convenience" "grammar" "check")
 
-(package-file "flymake-languagetool.el")
+(package-file "alt.el")
 
 (script "test" "echo \"Error: no test specified\" && exit 1")
 
