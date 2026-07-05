@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./.github/logo.svg" alt="ALT's Langauge Tool" />
+  <img src="https://raw.githubusercontent.com/jcubic/alt/refs/heads/master/.github/logo.svg" alt="ALT's Langauge Tool" />
 </div>
 
 <div align="center">
