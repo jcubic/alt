@@ -162,6 +162,12 @@ Suggestions from LanguageTool can be applied with:
     `alt` error then correct; otherwise, select one
     from the current buffer.
 
+`alt-correct-auto`: replace the error at point with
+    LanguageTool's first suggestion, without any prompt or popup.
+    Handy together with `alt-next` for quick passes — but it applies
+    the top suggestion blindly, so review the result (a single `undo`
+    reverts it).
+
 #### Correction style
 
 `alt-correct-style` controls how corrections are presented (default
@@ -182,6 +188,23 @@ Suggestions from LanguageTool can be applied with:
 Install it (`M-x package-install RET company`) and enable `company-mode`
 in the buffer (`alt` will enable it locally if needed). If the package is
 not available, `alt` warns once and falls back to the `minibuffer` style.
+
+### Key Bindings
+
+`Alt` doesn't have its own keybindings, but you can add them yourself.
+
+Here are example keybindings.
+
+```el
+(defun setup-alt ()
+  (interactive)
+  (local-set-key (kbd "C-S-SPC") 'alt-correct-at-point)
+  (local-set-key (kbd "C-:") 'alt-correct-auto)
+  (local-set-key (kbd "C-S-p") 'flymake-goto-prev-error)
+  (local-set-key (kbd "C-S-n") 'flymake-goto-next-error)
+  (company-mode +1)
+  (alt-mode))
+```
 
 ### Categories
 
