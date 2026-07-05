@@ -5,7 +5,7 @@
 </div>
 
 <div align="center">
-  
+
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![MELPA](https://melpa.org/packages/flymake-languagetool-badge.svg)](https://melpa.org/#/flymake-languagetool)
 [![MELPA Stable](https://stable.melpa.org/packages/flymake-languagetool-badge.svg)](https://stable.melpa.org/#/flymake-languagetool)
@@ -163,7 +163,7 @@ By default, `alt` will now provide LanguageTool
 category information for each identified error. If you wish to disable
 this behavior, you can set `alt-use-categories = nil`.
 
-<img align="middle" src="./etc/diagnostics.png" with="500" height="700">
+<img align="middle" src="./.github/diagnostics.png" with="500" height="700">
 
 ## 🛠️ Contribute
 
