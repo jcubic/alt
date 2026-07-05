@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021-2026  Shen, Jen-Chieh
 ;; Created date 2021-04-02 23:22:37
 
-;; Authors: Shen, Jen-Chieh <jcs090218@gmail.com>, Trey Peacock <git@treypeacock.com>
+;; Authors: Jakub T. Jankiewicz <jcubic@jcubic.pl>, Shen, Jen-Chieh <jcs090218@gmail.com>, Trey Peacock <git@treypeacock.com>
 ;; URL: https://github.com/jcubic/alt
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "27.1") (compat "29.1.4.4"))
