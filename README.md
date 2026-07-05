@@ -1,17 +1,21 @@
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![MELPA](https://melpa.org/packages/flymake-languagetool-badge.svg)](https://melpa.org/#/flymake-languagetool)
-[![MELPA Stable](https://stable.melpa.org/packages/flymake-languagetool-badge.svg)](https://stable.melpa.org/#/flymake-languagetool)
-[![CI](https://github.com/jcubic/alt/actions/workflows/test.yml/badge.svg)](https://github.com/jcubic/alt/actions/workflows/test.yml)
+
 
 <div align="center">
   <img src="./.github/logo.svg" alt="ALT's Langauge Tool" />
 </div>
 
+<div align="center">
+  
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![MELPA](https://melpa.org/packages/flymake-languagetool-badge.svg)](https://melpa.org/#/flymake-languagetool)
+[![MELPA Stable](https://stable.melpa.org/packages/flymake-languagetool-badge.svg)](https://stable.melpa.org/#/flymake-languagetool)
+[![CI](https://github.com/jcubic/alt/actions/workflows/test.yml/badge.svg)](https://github.com/jcubic/alt/actions/workflows/test.yml)
 
-
-<h1 align="center">ALT's Language Tool</h1>
+# ALT's Language Tool
 
 ALT is a maintained fork of [flymake-langaugetool](https://github.com/emacs-languagetool/flymake-languagetool).
+
+</div>
 
 ## 💾 Installation
 
