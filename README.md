@@ -1,5 +1,3 @@
-
-
 <div align="center">
   <img src="./.github/logo.svg" alt="ALT's Langauge Tool" />
 </div>
@@ -10,6 +8,8 @@
 [![MELPA](https://melpa.org/packages/flymake-languagetool-badge.svg)](https://melpa.org/#/flymake-languagetool)
 [![MELPA Stable](https://stable.melpa.org/packages/flymake-languagetool-badge.svg)](https://stable.melpa.org/#/flymake-languagetool)
 [![CI](https://github.com/jcubic/alt/actions/workflows/test.yml/badge.svg)](https://github.com/jcubic/alt/actions/workflows/test.yml)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Elisp styleguide](https://img.shields.io/badge/elisp-style%20guide-purple?logo=gnuemacs&logoColor=white)](https://github.com/bbatsov/emacs-lisp-style-guide)
 
 # ALT's Language Tool
 
@@ -166,9 +166,6 @@ this behavior, you can set `alt-use-categories = nil`.
 <img align="middle" src="./.github/diagnostics.png" with="500" height="700">
 
 ## 🛠️ Contribute
-
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
-[![Elisp styleguide](https://img.shields.io/badge/elisp-style%20guide-purple?logo=gnuemacs&logoColor=white)](https://github.com/bbatsov/emacs-lisp-style-guide)
 
 If you would like to contribute to this project, you may either
 clone and make pull requests to this repository. Or you can
