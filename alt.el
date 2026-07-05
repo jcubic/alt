@@ -763,6 +763,27 @@ Use OL as diagnostic if non-nil.  The correction interface is selected by
       (funcall #'alt-correct-at-point ov)
     (funcall-interactively #'alt-correct)))
 
+;;;###autoload
+(defun alt-correct-auto ()
+  "Replace the `alt' error at point with its first suggestion, no prompt.
+Unlike `alt-correct-at-point' this never opens a popup or the minibuffer,
+so it pairs well with `alt-next' for quick passes.  Signal a `user-error'
+when there is no error at point, or when the error has no suggestion.
+
+Because it applies LanguageTool's top suggestion blindly, review the
+result \(the change is a single `undo' away)."
+  (interactive)
+  (if-let* ((ov (alt--ov-at-point)))
+      (if-let* ((sugs (seq-remove
+                       #'null
+                       (map-elt (flymake-diagnostic-data
+                                 (overlay-get ov 'flymake-diagnostic))
+                                'suggestions))))
+          (alt--correct ov (car sugs))
+        (alt--clean-overlay)
+        (user-error "No suggestion for error at point"))
+    (user-error "No correction at point")))
+
 ;;
 ;;; Entry
 
