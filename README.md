@@ -17,6 +17,10 @@ ALT is a maintained fork of [flymake-langaugetool](https://github.com/emacs-lang
 
 </div>
 
+## 🖥️ Screenshot
+
+![Screenshot of the completion using company mode](https://raw.githubusercontent.com/jcubic/alt/refs/heads/master/.github/screenshot.png)
+
 ## 💾 Installation
 
 The instruction to use this plugin.
