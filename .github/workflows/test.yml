@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - master
+    paths:
+      - '**.el'
+      - 'Eask'
+      - 'Makefile'
+      - '.github/workflows/test.yml'
   pull_request:
+    paths:
+      - '**.el'
+      - 'Eask'
+      - 'Makefile'
+      - '.github/workflows/test.yml'
   workflow_dispatch:
 
 concurrency:
