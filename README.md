@@ -29,6 +29,7 @@ The instruction to use this plugin.
 2. Consider adding one of the following snippets to your configuration.
 
 #### Local LanguageTool Server
+
 ```el
 (use-package alt
   :ensure t
@@ -156,6 +157,27 @@ Suggestions from LanguageTool can be applied with:
 `alt-correct-dwim`: if point is on a
     `alt` error then correct; otherwise, select one
     from the current buffer.
+
+#### Correction style
+
+`alt-correct-style` controls how corrections are presented (default
+`minibuffer`):
+
+- `minibuffer` — pick a correction with `completing-read`.
+- `company` — show an in-buffer [company](https://company-mode.github.io/)
+  popup at the error. Each row is the correction word, followed by the
+  `Ignore Rule` / `Ignore Category` actions. With this style the echo-area
+  diagnostic drops the inline `(try: …)` hint, since corrections come from
+  the popup instead.
+
+```el
+(setq alt-correct-style 'company)
+```
+
+`company` is an **optional dependency**: `alt` never loads it for you.
+Install it (`M-x package-install RET company`) and enable `company-mode`
+in the buffer (`alt` will enable it locally if needed). If the package is
+not available, `alt` warns once and falls back to the `minibuffer` style.
 
 ### Categories
 

@@ -38,6 +38,13 @@
 (require 'url)
 (require 'flymake)
 
+;; `company' is an optional dependency, used only when `alt-correct-style'
+;; is `company'.  It is never required at load time; install and enable it
+;; yourself (`M-x package-install RET company').
+(defvar company-mode)
+(declare-function company-mode "company" (&optional arg))
+(declare-function company-begin-backend "company" (backend &optional callback))
+
 ;; Either use the built-in JSON support or import the `json' library, defining a
 ;; compatibility function so we can use the best supported JSON parser.
 (defalias 'alt--parse-json
@@ -221,6 +228,21 @@ These rules will be enabled if `alt-check-spelling' is non-nil."
   :safe #'booleanp
   :group 'alt)
 
+(defcustom alt-correct-style 'minibuffer
+  "How `alt' presents corrections at point.
+
+`minibuffer' selects a correction with `completing-read'.
+
+`company' shows an in-buffer company popup at the error.  It requires
+the `company' package (an optional dependency) to be installed; when
+company is unavailable `alt' warns and falls back to `minibuffer'.  With
+this style the echo-area diagnostic omits the inline \"(try: ...)\"
+suggestions, since corrections are offered through the popup instead."
+  :type '(choice (const :tag "Minibuffer (completing-read)" minibuffer)
+                 (const :tag "Company popup" company))
+  :safe #'symbolp
+  :group 'alt)
+
 (defvar-local alt--proc-buf nil
   "Current process we are currently using for grammar check.")
 
@@ -318,6 +340,13 @@ This function correctly handles emoji which count as two characters."
       (let-alist error
         (let* ((beg (alt--pos-to-point source-buffer (point-min) .offset))
                (end (alt--pos-to-point source-buffer beg .length)))
+          ;; LanguageTool (notably the premium API) sometimes returns a
+          ;; match span that runs past the flagged text into the trailing
+          ;; newline(s).  Trim those so the overlay covers only the error
+          ;; and corrections neither jump to nor merge with the next line.
+          (with-current-buffer source-buffer
+            (while (and (> end beg) (memq (char-before end) '(?\n ?\r)))
+              (setq end (1- end))))
           (unless (and faces (alt--ignore-at-pos-p beg source-buffer faces))
             (push (flymake-make-diagnostic
                    source-buffer
@@ -329,7 +358,7 @@ This function correctly handles emoji which count as two characters."
                    (let ((sugs (seq-map (lambda (rep)
                                          (car (map-values rep)))
                                        .replacements)))
-                     (if sugs
+                     (if (and sugs (not (eq alt-correct-style 'company)))
                          (format "%s (try: %s) [LanguageTool]"
                                  .message
                                  (string-join (seq-take sugs 3) ", "))
@@ -619,39 +648,93 @@ Depending on TYPE, either ignore Rule ID or Category ID."
   (interactive (list (or current-prefix-arg 1)))
   (alt-next (- n)))
 
+(defun alt--effective-correct-style ()
+  "Return the correction style to actually use.
+Honor `alt-correct-style', but fall back to `minibuffer' with a warning
+when `company' is requested yet unavailable."
+  (if (eq alt-correct-style 'company)
+      (if (require 'company nil t)
+          'company
+        (lwarn 'alt :warning
+               "`alt-correct-style' is `company' but the company package \
+is not available; falling back to the minibuffer")
+        'minibuffer)
+    alt-correct-style))
+
+(defun alt--correct-company (ov)
+  "Correct the `alt' diagnostic at overlay OV with a company popup.
+Suggestions are shown as bare words; the `Ignore Rule' and `Ignore
+Category' actions are appended as extra entries."
+  (unless (bound-and-true-p company-mode)
+    (company-mode 1))
+  (let* ((diag (overlay-get ov 'flymake-diagnostic))
+         (data (flymake-diagnostic-data diag))
+         (sugs (seq-remove #'null (map-elt data 'suggestions)))
+         (id (map-elt data 'rule-id))
+         (beg (overlay-start ov))
+         (end (overlay-end ov))
+         (word (buffer-substring-no-properties beg end))
+         (cands (append sugs '("Ignore Rule" "Ignore Category"))))
+    ;; company deletes the prefix before point and inserts the choice, so put
+    ;; point at the end of the error span and hand it the whole error word.
+    (goto-char end)
+    (company-begin-backend
+     (lambda (command &optional arg &rest _)
+       (pcase command
+         ('prefix (cons word (length word)))
+         ('candidates cands)
+         ('sorted t)
+         ('no-cache t)
+         ('post-completion
+          (pcase arg
+            ((or "Ignore Rule" "Ignore Category")
+             ;; company inserted the action text; restore the original word
+             ;; and run the real ignore handler instead.
+             (delete-region beg (point))
+             (goto-char beg)
+             (insert word)
+             (alt--ignore ov id (if (equal arg "Ignore Rule")
+                                    'Rule 'Category))))))))))
+
+(defun alt--correct-minibuffer (ov)
+  "Correct the `alt' diagnostic at overlay OV with `completing-read'."
+  (condition-case nil
+      (when-let*
+          ((type (map-elt (flymake-diagnostic-data
+                           (overlay-get ov 'flymake-diagnostic))
+                          'type))
+           (sugs (alt--suggestions))
+           (prompt (or (map-elt (flymake-diagnostic-data
+                                 (overlay-get ov 'flymake-diagnostic))
+                                'message)
+                      (flymake-diagnostic-text
+                       (overlay-get ov 'flymake-diagnostic))))
+           (id (map-elt (flymake-diagnostic-data
+                         (overlay-get ov 'flymake-diagnostic))
+                        'rule-id))
+           (choice (minibuffer-with-setup-hook
+                       #'alt--correct-setup
+                     (completing-read
+                      (format "Correction (%s): " prompt) sugs nil t nil nil
+                      (car sugs)))))
+        (pcase choice
+          ("Ignore Rule" (alt--ignore ov id 'Rule))
+          ("Ignore Category"
+           (alt--ignore ov id 'Category))
+          (_ (alt--correct ov choice))))
+    (t (alt--clean-overlay))))
+
 ;;;###autoload
 (defun alt-correct-at-point (&optional ol)
   "Correct `alt' diagnostic at point.
-Use OL as diagnostic if non-nil."
+Use OL as diagnostic if non-nil.  The correction interface is selected by
+`alt-correct-style'."
   (interactive)
   (if-let* ((alt-current-cand
              (or ol (alt--ov-at-point))))
-      (condition-case nil
-          (when-let*
-              ((ov alt-current-cand)
-               (type (map-elt (flymake-diagnostic-data
-                               (overlay-get ov 'flymake-diagnostic))
-                              'type))
-               (sugs (alt--suggestions))
-               (prompt (or (map-elt (flymake-diagnostic-data
-                                     (overlay-get ov 'flymake-diagnostic))
-                                    'message)
-                          (flymake-diagnostic-text
-                           (overlay-get ov 'flymake-diagnostic))))
-               (id (map-elt (flymake-diagnostic-data
-                             (overlay-get ov 'flymake-diagnostic))
-                            'rule-id))
-               (choice (minibuffer-with-setup-hook
-                           #'alt--correct-setup
-                         (completing-read
-                          (format "Correction (%s): " prompt) sugs nil t nil nil
-                          (car sugs)))))
-            (pcase choice
-              ("Ignore Rule" (alt--ignore ov id 'Rule))
-              ("Ignore Category"
-               (alt--ignore ov id 'Category))
-              (_ (alt--correct ov choice))))
-        (t (alt--clean-overlay)))
+      (if (eq (alt--effective-correct-style) 'company)
+          (alt--correct-company alt-current-cand)
+        (alt--correct-minibuffer alt-current-cand))
     (user-error "No correction at point")))
 
 ;;;###autoload
