@@ -189,6 +189,16 @@ Install it (`M-x package-install RET company`) and enable `company-mode`
 in the buffer (`alt` will enable it locally if needed). If the package is
 not available, `alt` warns once and falls back to the `minibuffer` style.
 
+Some LanguageTool fixes delete text rather than replace it (for example
+removing a repeated word), which the API reports as an empty replacement.
+An empty string can't be shown in a company popup, so `alt` displays it as
+`alt-company-remove-label` (default `"[remove]"`); choosing it removes the
+flagged text. Set it to whatever reads best:
+
+```el
+(setq alt-company-remove-label "[remove duplicate]")
+```
+
 ### Key Bindings
 
 `Alt` doesn't have its own keybindings, but you can add them yourself.

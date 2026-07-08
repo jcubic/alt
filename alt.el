@@ -243,6 +243,15 @@ suggestions, since corrections are offered through the popup instead."
   :safe #'symbolp
   :group 'alt)
 
+(defcustom alt-company-remove-label "[remove]"
+  "Company candidate label for a suggestion that deletes the flagged text.
+LanguageTool represents some fixes (e.g. a repeated word) as an empty
+replacement.  An empty string cannot be shown or selected in a company
+popup, so `alt' displays this label instead; choosing it removes the
+error text.  Set it to whatever reads best, e.g. \"[remove duplicate]\"."
+  :type 'string
+  :group 'alt)
+
 (defvar-local alt--proc-buf nil
   "Current process we are currently using for grammar check.")
 
@@ -335,43 +344,49 @@ This function correctly handles emoji which count as two characters."
   "Check grammar ERRORS for SOURCE-BUFFER document."
   (let ((faces (with-current-buffer source-buffer
                  (alt--ignored-faces)))
-        check-list)
+        check-list seen)
     (dolist (error errors)
       (let-alist error
         (let* ((beg (alt--pos-to-point source-buffer (point-min) .offset))
                (end (alt--pos-to-point source-buffer beg .length)))
           ;; LanguageTool (notably the premium API) sometimes returns a
-          ;; match span that runs past the flagged text into the trailing
-          ;; newline(s).  Trim those so the overlay covers only the error
-          ;; and corrections neither jump to nor merge with the next line.
+          ;; match span that runs past the flagged text into the surrounding
+          ;; newline(s) -- trailing for a mid-line error, leading for one at
+          ;; the start of a line.  Trim both so the overlay covers only the
+          ;; error and corrections never merge lines by deleting a newline.
           (with-current-buffer source-buffer
+            (while (and (< beg end) (memq (char-after beg) '(?\n ?\r)))
+              (setq beg (1+ beg)))
             (while (and (> end beg) (memq (char-before end) '(?\n ?\r)))
               (setq end (1- end))))
           (unless (and faces (alt--ignore-at-pos-p beg source-buffer faces))
-            (push (flymake-make-diagnostic
-                   source-buffer
-                   beg end
-                   (if alt-use-categories
-                       (map-elt alt-category-map
-                                .rule.category.id)
-                     :warning)
-                   (let ((sugs (seq-map (lambda (rep)
-                                         (car (map-values rep)))
-                                       .replacements)))
-                     (if (and sugs (not (eq alt-correct-style 'company)))
-                         (format "%s (try: %s) [LanguageTool]"
-                                 .message
-                                 (string-join (seq-take sugs 3) ", "))
-                       (concat .message " [LanguageTool]")))
-                   `((message . ,(concat .message " [LanguageTool]"))
-                     (suggestions . (,@(seq-map (lambda (rep)
-                                                  (car (map-values rep)))
-                                                .replacements)))
-                     (rule-id . ,.rule.id)
-                     (rule-desc . ,.rule.description)
-                     (type . ,.rule.issueType)
-                     (category . ,.rule.category.id)))
-                  check-list)))))
+            (let* ((sugs (seq-map (lambda (rep) (car (map-values rep)))
+                                  .replacements))
+                   (text (if (and sugs (not (eq alt-correct-style 'company)))
+                             (format "%s (try: %s) [LanguageTool]"
+                                     .message
+                                     (string-join (seq-take sugs 3) ", "))
+                           (concat .message " [LanguageTool]")))
+                   (key (list beg end text)))
+              ;; Skip identical duplicates (same span and message).  If
+              ;; LanguageTool returns two matches for the same span, a second
+              ;; overlay would make the echo-area (eldoc) hint appear twice.
+              (unless (member key seen)
+                (push key seen)
+                (push (flymake-make-diagnostic
+                       source-buffer
+                       beg end
+                       (if alt-use-categories
+                           (map-elt alt-category-map .rule.category.id)
+                         :warning)
+                       text
+                       `((message . ,(concat .message " [LanguageTool]"))
+                         (suggestions . (,@sugs))
+                         (rule-id . ,.rule.id)
+                         (rule-desc . ,.rule.description)
+                         (type . ,.rule.issueType)
+                         (category . ,.rule.category.id)))
+                      check-list)))))))
     check-list))
 
 (defun alt--output-to-errors (output source-buffer)
@@ -601,15 +616,27 @@ Depending on TYPE, either ignore Rule ID or Category ID."
     (message "%s %s: (%s) has been disabled" type id desc)
     (alt--clean-overlay)))
 
+(defun alt--apply-correction (beg end replacement)
+  "Replace buffer text BEG..END with REPLACEMENT.
+When REPLACEMENT is empty (a deletion, e.g. removing a repeated word) and
+the removal would leave two adjacent spaces, drop one so a single space
+remains.  Point is left where the replacement ends."
+  (delete-region beg end)
+  (goto-char beg)
+  (if (string-empty-p replacement)
+      (when (and (not (bobp)) (not (eobp))
+                 (memq (char-before) '(?\s ?\t))
+                 (memq (char-after) '(?\s ?\t)))
+        (delete-char 1))
+    (insert replacement)))
+
 (defun alt--correct (ov choice)
   "Replace text in error at OV with CHOICE."
   (let ((start (overlay-start ov))
         (end (overlay-end ov)))
     (undo-boundary)
     (delete-overlay ov)
-    (delete-region start end)
-    (goto-char start)
-    (insert choice)))
+    (alt--apply-correction start end choice)))
 
 ;; Lifted from jinx.el but will ensure users have a somewhat consistent
 ;; experience
@@ -661,40 +688,61 @@ is not available; falling back to the minibuffer")
         'minibuffer)
     alt-correct-style))
 
+(defun alt--company-choices (suggestions)
+  "Build company (LABEL . ACTION) choices from LanguageTool SUGGESTIONS.
+ACTION is the replacement string for a suggestion, or the symbol
+`ignore-rule' / `ignore-category' for the trailing Ignore entries.  An
+empty replacement is relabelled `alt-company-remove-label' so company can
+display and select it."
+  (append
+   (mapcar (lambda (s)
+             (if (string-empty-p s)
+                 (cons alt-company-remove-label "")
+               (cons s s)))
+           (seq-remove #'null suggestions))
+   (list (cons "Ignore Rule" 'ignore-rule)
+         (cons "Ignore Category" 'ignore-category))))
+
 (defun alt--correct-company (ov)
   "Correct the `alt' diagnostic at overlay OV with a company popup.
-Suggestions are shown as bare words; the `Ignore Rule' and `Ignore
-Category' actions are appended as extra entries."
+Each suggestion is shown as its replacement word (an empty replacement,
+such as removing a repeated word, is shown as `alt-company-remove-label'),
+followed by the `Ignore Rule' and `Ignore Category' actions.  The chosen
+edit is applied in `post-completion', so shortening, multi-word and
+deletion fixes all work regardless of company's completion model."
   (unless (bound-and-true-p company-mode)
     (company-mode 1))
   (let* ((diag (overlay-get ov 'flymake-diagnostic))
          (data (flymake-diagnostic-data diag))
-         (sugs (seq-remove #'null (map-elt data 'suggestions)))
          (id (map-elt data 'rule-id))
          (beg (overlay-start ov))
          (end (overlay-end ov))
          (word (buffer-substring-no-properties beg end))
-         (cands (append sugs '("Ignore Rule" "Ignore Category"))))
-    ;; company deletes the prefix before point and inserts the choice, so put
-    ;; point at the end of the error span and hand it the whole error word.
+         (choices (alt--company-choices (map-elt data 'suggestions)))
+         (labels (mapcar #'car choices)))
+    ;; Hand company the whole error text as the prefix and put point at its
+    ;; end, so company deletes exactly the error span; `post-completion'
+    ;; then swaps in the real result (which may be empty or multi-word).
     (goto-char end)
     (company-begin-backend
      (lambda (command &optional arg &rest _)
        (pcase command
          ('prefix (cons word (length word)))
-         ('candidates cands)
+         ('candidates labels)
          ('sorted t)
          ('no-cache t)
          ('post-completion
-          (pcase arg
-            ((or "Ignore Rule" "Ignore Category")
-             ;; company inserted the action text; restore the original word
-             ;; and run the real ignore handler instead.
-             (delete-region beg (point))
-             (goto-char beg)
-             (insert word)
-             (alt--ignore ov id (if (equal arg "Ignore Rule")
-                                    'Rule 'Category))))))))))
+          (let ((action (cdr (assoc arg choices))))
+            ;; company replaced the span with the chosen label; delete that
+            ;; and insert what the action really calls for.
+            (pcase action
+              ('ignore-rule
+               (delete-region beg (point)) (goto-char beg) (insert word)
+               (alt--ignore ov id 'Rule))
+              ('ignore-category
+               (delete-region beg (point)) (goto-char beg) (insert word)
+               (alt--ignore ov id 'Category))
+              (_ (alt--apply-correction beg (point) (or action "")))))))))))
 
 (defun alt--correct-minibuffer (ov)
   "Correct the `alt' diagnostic at overlay OV with `completing-read'."
